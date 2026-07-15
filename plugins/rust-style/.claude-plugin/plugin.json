@@ -1,0 +1,9 @@
+{
+  "name": "rust-style",
+  "description": "A types-first, closures-as-ports Rust style guide for agents: model illegal states out with sum types and newtypes, inject effects as async closures instead of traits, parse-don't-validate, typed builders, and thiserror at the edge.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Steen Larsen"
+  },
+  "keywords": ["rust", "style-guide", "types-first", "hexagonal", "ports-and-adapters", "sum-types", "dependency-injection"]
+}

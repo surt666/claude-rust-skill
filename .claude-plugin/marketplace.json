@@ -1,0 +1,19 @@
+{
+  "name": "rust-style-marketplace",
+  "owner": {
+    "name": "Steen Larsen"
+  },
+  "metadata": {
+    "description": "Shareable Claude Code skills for writing idiomatic, types-first Rust.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "rust-style",
+      "source": "./plugins/rust-style",
+      "description": "Types-first, closures-as-ports Rust style guide for agents.",
+      "category": "development",
+      "keywords": ["rust", "style-guide", "types-first"]
+    }
+  ]
+}
