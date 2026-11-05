@@ -1,6 +1,6 @@
 ---
 name: writing-rust
-description: Use when writing or reviewing Rust — designing domain types, modeling state with enums/sum types, choosing dependency-injection boundaries, building structs with many fields, parsing or converting values, or handling errors. Style is types-first and closures-as-ports, keeping business logic pure and unit-testable with no DB, mocks, or external services.
+description: Use when writing or reviewing Rust — designing domain types, modeling state with enums/sum types, choosing dependency-injection boundaries, building structs with many fields, parsing or converting values, handling errors, or writing async code. Style is types-first and closures-as-ports, keeping business logic pure and unit-testable with no DB, mocks, or external services.
 ---
 
 # Writing Rust
@@ -30,6 +30,7 @@ Use for any Rust design decision: a new domain type, a function that needs a DB,
 | String ⇄ enum conversion | `strum::Display` + `EnumString` | hand-written match arms |
 | Domain error | `thiserror` enum in the domain layer | `String` errors / panic / `anyhow` in core |
 | Abstraction at a hot boundary | generics / `impl Trait` (monomorphized) | `Box<dyn>` unless you must erase the type |
+| Two+ awaits that don't depend on each other | `tokio::try_join!` / `join!` / `try_join_all` | `.await` them one after another |
 
 ## Make illegal states unrepresentable
 
@@ -141,6 +142,24 @@ Default to closures. A trait earns its place only when:
 
 One or two operations, injected for testability → closure. Many cohesive operations or open-ended implementors → trait.
 
+## Independent awaits run concurrently
+
+**Required:** if one future doesn't need another's result, await them together. Sequential `.await`s on independent I/O add their latencies for nothing. Before writing a second `.await`, ask: does this call use the previous result? If not, join.
+
+```rust
+// Wrong: the second fetch waits for the first for no reason
+let node = get_node_fn(id).await?;
+let sensors = list_sensors_fn(site).await?;
+
+// Right: both in flight at once; first error short-circuits
+let (node, sensors) = tokio::try_join!(get_node_fn(id), list_sensors_fn(site))?;
+```
+
+- `try_join!` for `Result` futures, `join!` when you need every outcome.
+- N futures over a collection → `futures::future::try_join_all(ids.into_iter().map(&get_node_fn))`, not a `for` loop with `.await` inside. Unbounded fan-out against a rate-limited service → `stream::iter(..).buffer_unordered(n)`.
+- Calling one closure port in several concurrent futures needs `Fn`, not `FnOnce`.
+- Stay sequential only when there is a real dependency: data (B needs A's output), ordering (write-then-read), or a short-circuit (skip B when A fails or returns `None`). Say which in a comment.
+
 ## Typed builder for many-field structs
 
 Use the `typed-builder` crate — the derive enforces at compile time that every required field is set before `.build()`, and defaults can reference earlier fields.
@@ -198,6 +217,7 @@ Prefer monomorphized generics and `impl Trait` at hot boundaries (the closure po
 - **Defining a trait for a single-impl port.** If there's exactly one production implementation and the only other "impl" is a test double, use a closure.
 - **`String` errors / `.unwrap()` in the domain.** Model the failure as a variant; unwrap only where the invariant is truly local and proven.
 - **`Box<dyn>` by reflex.** If the type is known at the call site, generics inline and cost nothing. Erase only when you must.
+- **Sequential awaits on independent work.** Two `.await`s in a row (or `.await` in a `for` loop) where neither uses the other's result → `try_join!` / `try_join_all`.
 - **Logic that imports the DB SDK.** The `logic`/`domain` layer should not name `aws_sdk_*`, `sqlx`, etc. If it does, an effect leaked in that should have been a closure parameter.
 
 ## Red flags — stop and reconsider the type
