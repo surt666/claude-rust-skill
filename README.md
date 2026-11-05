@@ -7,6 +7,7 @@ A shareable Claude Code skill that teaches agents to write **types-first, closur
 - **Make illegal states unrepresentable** — sum types with per-variant data, newtypes over primitives, `strum` for string⇄enum.
 - **Parse, don't validate** — constructors that return `Result<T, E>` and hand back a value whose type proves it's valid.
 - **Closures as ports, not traits** — business logic takes its effects (DB, clock, external calls) as `async` closure parameters, so the logic layer is pure and unit-tested with no DB, mocks, or trait objects. Includes the decision rule for when a trait *does* earn its place.
+- **Join independent awaits** — futures that don't depend on each other run together via `try_join!` / `join!` / `try_join_all`, not one `.await` after another.
 - **Typed builders** (`typed-builder`), **`thiserror` in the domain / translate at the edge**, and **generics/`impl Trait` over `dyn`**.
 - A quick-reference table, common mistakes, and a red-flags checklist.
 
